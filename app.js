@@ -4,25 +4,38 @@ const conif = require('node-console-input');
 (async () => {
   const browser = await puppeteer.launch({
     headless: false,
-    userDataDir: './userData',
-    slowMo: 1000
+    userDataDir: './userData'
   });
   const page = await browser.newPage();
   await page.goto('https://tixcraft.com/');
   let program = conif.getConsoleInput('program: ');
   await page.goto(`https://tixcraft.com/activity/game/${program}`);
+  await page.waitForNavigation();
   let quantity = conif.getConsoleInput('quantity(1~4): ');
   let position = conif.getConsoleInput('position: ') - 1;
   let start = conif.getConsoleInput('start??(Y/N)', false);
   if (start == 'y' || again == 'Y') {
+    reflash();
     gogo();
   } else {
     await browser.close();
   }
-  // 監聽錯誤事件
+
+  async function reflash() {
+    let btn = await page.$('.btn-next');
+    if (!btn) {
+      await page.evaluate(() => {
+        location.reload(true);
+      });
+      await page.waitForNavigation();
+      reflash();
+    }
+  }
+
   async function error(dialog) {
     dialog.accept();
     console.log('驗證碼錯誤');
+    await page.waitForSelector('#TicketForm_agree');
     await page.click('#TicketForm_agree');
     await page.select('.mobile-select', quantity);
     let code = conif.getConsoleInput('Code: ', false);
@@ -33,15 +46,12 @@ const conif = require('node-console-input');
   async function gogo() {
     await page.waitForSelector('.btn-next', { timeout: 999999999 });
     await page.click('.btn-next');
-    await page.waitForSelector('.select_form_b');
+    await page.waitForSelector('.footer');
     let position_link = await page.$$('.select_form_b>a');
     await position_link[position].click();
     await page.waitForSelector('#TicketForm_agree');
     await page.click('#TicketForm_agree');
     await page.select('.mobile-select', quantity);
-    await page.evaluate(() => {
-      location.reload(true)
-    })
     let code = conif.getConsoleInput('Code: ', false);
     await page.type('#TicketForm_verifyCode', code);
     await page.click('#ticketPriceSubmit');
