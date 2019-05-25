@@ -10,13 +10,11 @@ const conif = require('node-console-input');
   await page.goto('https://tixcraft.com/');
   let program = conif.getConsoleInput('program: ');
   await page.goto(`https://tixcraft.com/activity/game/${program}`);
-  await page.waitForNavigation();
   let quantity = conif.getConsoleInput('quantity(1~4): ');
   let position = conif.getConsoleInput('position: ') - 1;
   let start = conif.getConsoleInput('start??(Y/N)', false);
-  if (start == 'y' || again == 'Y') {
+  if (start == 'y' || start == 'Y') {
     reflash();
-    gogo();
   } else {
     await browser.close();
   }
@@ -29,6 +27,8 @@ const conif = require('node-console-input');
       });
       await page.waitForNavigation();
       reflash();
+    } else {
+      gogo();
     }
   }
 
@@ -44,9 +44,8 @@ const conif = require('node-console-input');
   }
 
   async function gogo() {
-    await page.waitForSelector('.btn-next', { timeout: 999999999 });
     await page.click('.btn-next');
-    await page.waitForSelector('.footer');
+    await page.waitForSelector('.zone.area-list');
     let position_link = await page.$$('.select_form_b>a');
     await position_link[position].click();
     await page.waitForSelector('#TicketForm_agree');
