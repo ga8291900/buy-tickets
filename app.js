@@ -10,6 +10,7 @@ const conif = require('node-console-input');
   await page.goto('https://tixcraft.com/');
   let program = conif.getConsoleInput('program: ');
   await page.goto(`https://tixcraft.com/activity/game/${program}`);
+  await page.waitForSelector('.title-img');
   let quantity = conif.getConsoleInput('quantity(1~4): ');
   let position = conif.getConsoleInput('position: ') - 1;
   let start = conif.getConsoleInput('start??(Y/N)', false);
@@ -37,19 +38,43 @@ const conif = require('node-console-input');
     console.log('驗證碼錯誤');
     await page.waitForSelector('#TicketForm_agree');
     await page.click('#TicketForm_agree');
+    await page.waitForSelector('.mobile-select');
     await page.select('.mobile-select', quantity);
     let code = conif.getConsoleInput('Code: ', false);
     await page.type('#TicketForm_verifyCode', code);
     await page.click('#ticketPriceSubmit');
   }
-
+  async function empty() {
+    let position_link = await page.$$('.select_form_b>a');
+    console.log(position);
+    if (position_link[position]) {
+      await position_link[position].click();
+    } else {
+      console.log('座位已售完');
+      position = conif.getConsoleInput('newposition: ') - 1;
+      await page.evaluate(() => {
+        location.reload(true);
+      });
+      await page.waitForNavigation();
+      empty();
+    }
+  }
+  async function emptyAlert() {
+    dialog.accept();
+    console.log('座位已售完');
+    position = conif.getConsoleInput('newposition: ') - 1;
+    let position_link = await page.$$('.select_form_b>a');
+    await position_link[position].click();
+  }
   async function gogo() {
     await page.click('.btn-next');
     await page.waitForSelector('.zone.area-list');
-    let position_link = await page.$$('.select_form_b>a');
-    await position_link[position].click();
+    empty();
+    await page.on('dialog', emptyAlert);
     await page.waitForSelector('#TicketForm_agree');
+    await page.removeListener('dialog', emptyAlert);
     await page.click('#TicketForm_agree');
+    await page.waitForSelector('.mobile-select');
     await page.select('.mobile-select', quantity);
     let code = conif.getConsoleInput('Code: ', false);
     await page.type('#TicketForm_verifyCode', code);
@@ -60,6 +85,7 @@ const conif = require('node-console-input');
     let again = conif.getConsoleInput('again??(Y/N)', false);
     if (again == 'y' || again == 'Y') {
       await page.goto(`https://tixcraft.com/activity/game/${program}`);
+      await page.waitForSelector('.title-img');
       quantity = conif.getConsoleInput('quantity(1~4): ');
       position = conif.getConsoleInput('position: ');
       gogo();
