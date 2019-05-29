@@ -10,7 +10,6 @@ const conif = require('node-console-input');
   await page.goto('https://tixcraft.com/');
   let program = conif.getConsoleInput('program: ');
   await page.goto(`https://tixcraft.com/activity/game/${program}`);
-  await page.waitForSelector('.title-img');
   let quantity = conif.getConsoleInput('quantity(1~4): ');
   let position = conif.getConsoleInput('position: ') - 1;
   let start = conif.getConsoleInput('start??(Y/N)', false);
@@ -23,10 +22,7 @@ const conif = require('node-console-input');
   async function reflash() {
     let btn = await page.$('.btn-next');
     if (!btn) {
-      await page.evaluate(() => {
-        location.reload(true);
-      });
-      await page.waitForNavigation();
+      await Promise.all([page.reload(), page.waitForNavigation()]);
       reflash();
     } else {
       gogo();
@@ -46,16 +42,12 @@ const conif = require('node-console-input');
   }
   async function empty() {
     let position_link = await page.$$('.select_form_b>a');
-    console.log(position);
     if (position_link[position]) {
       await position_link[position].click();
     } else {
       console.log('座位已售完');
       position = conif.getConsoleInput('newposition: ') - 1;
-      await page.evaluate(() => {
-        location.reload(true);
-      });
-      await page.waitForNavigation();
+      await Promise.all([page.reload(), page.waitForNavigation()]);
       empty();
     }
   }
@@ -73,19 +65,18 @@ const conif = require('node-console-input');
     await page.on('dialog', emptyAlert);
     await page.waitForSelector('#TicketForm_agree');
     await page.removeListener('dialog', emptyAlert);
+    await page.on('dialog', error);
     await page.click('#TicketForm_agree');
     await page.waitForSelector('.mobile-select');
     await page.select('.mobile-select', quantity);
     let code = conif.getConsoleInput('Code: ', false);
     await page.type('#TicketForm_verifyCode', code);
     await page.click('#ticketPriceSubmit');
-    await page.on('dialog', error);
-    await page.waitForSelector('#cancelTimeCountdown', { timeout: 999999999 });
+    await page.waitForSelector('#cancelTimeCountdown', { timeout: 0 });
     await page.removeListener('dialog', error);
     let again = conif.getConsoleInput('again??(Y/N)', false);
     if (again == 'y' || again == 'Y') {
       await page.goto(`https://tixcraft.com/activity/game/${program}`);
-      await page.waitForSelector('.title-img');
       quantity = conif.getConsoleInput('quantity(1~4): ');
       position = conif.getConsoleInput('position: ');
       gogo();
